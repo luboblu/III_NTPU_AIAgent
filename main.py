@@ -9,7 +9,7 @@ from linebot.exceptions import (
 from linebot.models import *
 
 app = Flask(__name__)
-
+import ollama
 # 必須放上自己的Channel Access Token
 line_bot_api = LineBotApi('Ywgpu0U7+ocxOFS5ROnbktgvOloqHwv7yc26vVf9Tj8UJPccLOjD7NDwDIWNYbSsS33pE48qWm1mboag2IC/sj5qxd9oZv5Z1SH8dKzCNrm0v1lmvtfa7TqUCSmiGOmPGX+azGqD9SkgKtwnTdCAdQdB04t89/1O/w1cDnyilFU=')
 # 必須放上自己的Channel Secret
@@ -42,8 +42,23 @@ def callback():
 ##### 基本上程式編輯都在這個function #####
 @handler.add(MessageEvent, message=TextMessage)
 def handle_message(event):
-    message = TextSendMessage(text=event.message.text)
-    line_bot_api.reply_message(event.reply_token,message)
+    user_message = event.message.text  # 获取用户发送的消息
+
+    # 打印用户消息，确认收到的消息正确
+    print(f"User message: {user_message}")
+    
+    try:
+        # 使用 LLaMA 模型生成回复
+        response = ollama.generate(model="llama-3.1-8b", prompt=user_message)
+        generated_text = response['text']  # 获取模型生成的文本
+        print(f"Generated response: {generated_text}")  # 打印模型生成的回复，确认 LLaMA 响应
+    except Exception as e:
+        print(f"Error generating response: {str(e)}")  # 打印任何错误
+    
+    # 将生成的文本发送回用户
+    reply_message = TextSendMessage(text=generated_text if generated_text else "抱歉，未能生成回复。")
+    line_bot_api.reply_message(event.reply_token, reply_message)
+
 
 #主程式
 import os
