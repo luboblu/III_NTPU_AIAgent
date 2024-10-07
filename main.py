@@ -49,7 +49,7 @@ def handle_message(event):
     
     try:
         # 使用 LLaMA 模型生成回复
-        response = ollama.generate(model="llama-3.1-8b", prompt=user_message)
+        response = ollama.generate(model="llama3.1:8b", prompt=user_message)
         generated_text = response.get('text', '無法生成回應')  # 获取模型生成的文本
         print(f"Generated response: {generated_text}")  # 打印模型生成的回复，确认 LLaMA 响应
     except Exception as e:
