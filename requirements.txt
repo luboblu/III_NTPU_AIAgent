@@ -9,3 +9,7 @@ emoji
 pyshorteners 
 scipy
 ollama
+google.cloud
+dotenv
+os
+re
