@@ -13,3 +13,4 @@ google.cloud
 dotenv
 os
 re
+sentence_transformers
