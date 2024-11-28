@@ -165,7 +165,6 @@ torchvision==0.20.1
 tornado==6.4.1
 tqdm==4.66.5
 traitlets==5.14.3
-transformers==4.46.1
 trio==0.26.2
 trio-websocket==0.11.1
 trl==0.12.0
