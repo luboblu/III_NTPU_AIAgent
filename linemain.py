@@ -58,9 +58,11 @@ def get_llama_response(input_text):
 )
 
     try:
-        response = chat(model="llama3.2", messages=[
-            {"role": "user", "content": llama_prompt}
-        ])
+        response = chat(
+            model="llama3.2",
+            messages=[{"role": "user", "content": llama_prompt}],
+            api_url=os.getenv("OLLAMA_API_URL", "http://localhost:11434")  # 默认本地
+        )
         if isinstance(response, dict) and 'message' in response:
             return response['message']['content'].strip()
         else:
