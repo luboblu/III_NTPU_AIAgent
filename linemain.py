@@ -1,11 +1,13 @@
-import subprocess
 import requests
 from flask import Flask, request, jsonify
 from linebot import LineBotApi, WebhookHandler
 from linebot.exceptions import InvalidSignatureError
 from linebot.models import MessageEvent, TextMessage, TextSendMessage
 import json
-import os
+from ollama import chat
+from ollama import ChatResponse
+from datetime import datetime
+
 # TDX API credentials
 TOKEN_URL = "https://tdx.transportdata.tw/auth/realms/TDXConnect/protocol/openid-connect/token"
 CLIENT_ID = "bob223590-ba7b60b8-d55c-4d51"
@@ -28,50 +30,37 @@ def load_local_traffic_data():
         print("Error: 無法找到本地 JSON 檔案。")
         return []
 
-# 使用 Ollama 取得 Llama 模型的回應
+# 使用 Ollama API 取得 Llama 模型的回應
 def get_llama_response(input_text):
     llama_prompt = (
-    f"請分析以下句子，提取其中的區域和路段名稱，按照指定格式輸出。\n\n"
-    f"- **提取規則**：\n"
-    f"  - 區域：句子中明確提及的行政區域名稱，如「台北市」、「三峽區」。若未提及，填寫 None。\n"
-    f"  - 路段：句子中提及的道路名稱，如「中正路」、「學府路」。若未提及，填寫 None。\n"
-    f"  - 注意：不要將路段名稱填入區域，區域和路段不可相同。\n\n"
-    f"- **範例1**:\n"
-    f"  「我想知道三峽區學府路的路況」\n"
-    f"  輸出:\n"
-    f"  區域: 三峽區\n"
-    f"  路段: 學府路\n\n"
-    f"- **範例2**:\n"
-    f"  「中正路有塞車嗎」\n"
-    f"  輸出:\n"
-    f"  區域: None\n"
-    f"  路段: 中正路\n\n"
-    f"- **範例3**:\n"
-    f"  「查詢和平路的交通狀況」\n"
-    f"  輸出:\n"
-    f"  區域: None\n"
-    f"  路段: 和平路\n\n"
-    f"請處理以下句子：\n"
-    f"「{input_text}」"
-)
+        f"請分析以下句子，提取其中的區域和路段名稱，按照指定格式輸出。\n\n"
+        f"- **提取規則**：\n"
+        f"  - 區域：句子中明確提及的行政區域名稱，如「台北市」、「三峽區」。若未提及，填寫 None。\n"
+        f"  - 路段：句子中提及的道路名稱，如「中正路」、「學府路」。若未提及，填寫 None。\n"
+        f"  - 注意：不要將路段名稱填入區域，區域和路段不可相同。\n\n"
+        f"- **範例1**:\n"
+        f"  「我想知道三峽區學府路的路況」\n"
+        f"  輸出:\n"
+        f"  區域: 三峽區\n"
+        f"  路段: 學府路\n\n"
+        f"請處理以下句子：\n"
+        f"「{input_text}」"
+    )
 
-
-    command = ["ollama", "run", "llama3.2:3b"]
     try:
-        result = subprocess.run(command, input=llama_prompt.encode('utf-8'), stdout=subprocess.PIPE, stderr=subprocess.PIPE, check=True)
-        return result.stdout.decode('utf-8')
-    except subprocess.CalledProcessError as e:
-        print(f"Error: {e.stderr.decode('utf-8')}")
-        return ""
-    except FileNotFoundError:
-        print("Error: 無法找到 'ollama' 命令，請確認您是否正確安裝了 Ollama。")
-        return ""
+        # 调用 Ollama API
+        response: ChatResponse = chat(model="llama3.2", messages=[
+            {"role": "user", "content": llama_prompt}
+        ])
+        return response.message.content.strip()  # 返回清理过的结果
+    except Exception as e:
+        print(f"Error: {e}")
+        return "無法獲取 Ollama 的回應，請檢查配置。"
 
 # 解析 Llama 輸出以提取區域和路段
 def parse_area_and_road(llama_output):
-    # 根據 Llama 模型的輸出來提取區域和路段
-    lines = llama_output.strip().split('\n')  # 使用 strip() 去除多餘的空格和換行符
-    area, road, description = None, None, None
+    lines = llama_output.strip().split('\n')
+    area, road = None, None
 
     for line in lines:
         line = line.strip()
@@ -81,29 +70,21 @@ def parse_area_and_road(llama_output):
             road = line.split('：', 1)[1].strip()
             if road.lower() == 'none':
                 road = None
-        elif "說明" in line and '：' in line:
-            description = line.split('：', 1)[1].strip()
 
-    return area, road, description
+    return area, road
 
-# 查詢交通資訊（本地 JSON 檔案或 API）
-from datetime import datetime
-
+# 格式化日期
 def format_datetime(dt_str):
     dt = datetime.fromisoformat(dt_str[:-6])
     return dt.strftime('%Y-%m-%d %H:%M')
 
+# 查詢交通資訊（本地 JSON 檔案或 API）
 def get_traffic_info(area, road):
-    # 載入本地 JSON 檔案中的交通資訊
     news_list = load_local_traffic_data()
     matching_events = []
 
     # 查詢 API 以獲取最新的交通資訊
-    data = {
-        'grant_type': 'client_credentials',
-        'client_id': CLIENT_ID,
-        'client_secret': CLIENT_SECRET
-    }
+    data = {'grant_type': 'client_credentials', 'client_id': CLIENT_ID, 'client_secret': CLIENT_SECRET}
     try:
         response = requests.post(TOKEN_URL, data=data)
         response.raise_for_status()
@@ -113,9 +94,7 @@ def get_traffic_info(area, road):
         access_token = None
 
     if access_token:
-        headers = {
-            'authorization': f'Bearer {access_token}'
-        }
+        headers = {'authorization': f'Bearer {access_token}'}
         try:
             response = requests.get(API_URL, headers=headers)
             response.raise_for_status()
@@ -125,26 +104,14 @@ def get_traffic_info(area, road):
         except requests.RequestException as e:
             print(f"查詢 API 時發生錯誤：{e}")
 
-    # 當只有路段時，查詢所有與該路段相關的事件
-    if road and (area == "None"):
+    # 查詢結果匹配邏輯
+    if area or road:
         for entry in news_list:
             title = entry.get('Title', '').lower().replace(' ', '')
-            if road.lower().replace(' ', '') in title:
-                matching_events.append(f"{entry.get('Title')}\n時間：{format_datetime(entry.get('StartTime'))} - {format_datetime(entry.get('EndTime'))}")
-
-    # 當有區域但沒有具體路段時，查詢所有與該區域相關的事件
-    elif area and not road:
-        for entry in news_list:
-            title = entry.get('Title', '').lower().replace(' ', '')
-            if area.lower().replace(' ', '') in title:
-                matching_events.append(f"{entry.get('Title')}\n時間：{format_datetime(entry.get('StartTime'))} - {format_datetime(entry.get('EndTime'))}")
-
-    # 當有區域和路段時，進一步過濾事件
-    elif area and road:
-        for entry in news_list:
-            title = entry.get('Title', '').lower().replace(' ', '')
-            if area.lower().replace(' ', '') in title and road.lower().replace(' ', '') in title:
-                matching_events.append(f"{entry.get('Title')}\n時間：{format_datetime(entry.get('StartTime'))} - {format_datetime(entry.get('EndTime'))}")
+            if area and area.lower().replace(' ', '') in title or road and road.lower().replace(' ', '') in title:
+                matching_events.append(
+                    f"{entry.get('Title')}\n時間：{format_datetime(entry.get('StartTime'))} - {format_datetime(entry.get('EndTime'))}"
+                )
 
     return '\n'.join([f'{index + 1}. {event}' for index, event in enumerate(matching_events)]) if matching_events else "無法找到指定區域或路段的交通狀況。"
 
@@ -164,16 +131,15 @@ def callback():
 def handle_message(event):
     user_input = event.message.text
     llama_output = get_llama_response(user_input)
-    area, road, description = parse_area_and_road(llama_output)
+    area, road = parse_area_and_road(llama_output)
 
-    if area:
+    if area or road:
         traffic_info = get_traffic_info(area, road)
         response_message = f"我找到了與您提供的地區和路段有關的最新交通狀況：\n{traffic_info}" if traffic_info else "目前沒有找到相關的交通資訊，請稍後再查詢或提供更多細節。"
-        if description:
-            response_message += f"\n\n詳細說明：{description}"
         line_bot_api.reply_message(event.reply_token, TextSendMessage(text=response_message))
     else:
         line_bot_api.reply_message(event.reply_token, TextSendMessage(text="未能識別區域或路段，請輸入更清晰的地區或道路名稱，例如：台北市中正區信義路。"))
+
 
 if __name__ == "__main__":
     port = int(os.getenv("PORT", 5000))  
