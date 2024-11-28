@@ -40,7 +40,7 @@
    - 確保您的環境已安裝 Python 3.12.4 和 pip 工具。
 
 2. **下載專案檔案**
-   - 下載或克隆此專案到本地：
+   - 下載或clone此專案到本地：
      ```bash
      git clone https://github.com/luboblu/III_NTPU_AIAgent.git
      ```
