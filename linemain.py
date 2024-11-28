@@ -7,7 +7,7 @@ import json
 from ollama import chat
 from ollama import ChatResponse
 from datetime import datetime
-
+import os
 # TDX API credentials
 TOKEN_URL = "https://tdx.transportdata.tw/auth/realms/TDXConnect/protocol/openid-connect/token"
 CLIENT_ID = "bob223590-ba7b60b8-d55c-4d51"
