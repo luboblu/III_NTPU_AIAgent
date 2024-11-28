@@ -23,7 +23,7 @@ app = Flask(__name__)
 # Load JSON file for local traffic data
 def load_local_traffic_data():
     try:
-        with open('C:\\Users\\盧bob\\Desktop\\AI Agent\\sanxia_100_news_format.json', 'r', encoding='utf-8') as file:
+        with open('sanxia_100_news_format.json', 'r', encoding='utf-8') as file:
             data = json.load(file)
             return data.get('Newses', [])
     except FileNotFoundError:
@@ -33,28 +33,41 @@ def load_local_traffic_data():
 # 使用 Ollama API 取得 Llama 模型的回應
 def get_llama_response(input_text):
     llama_prompt = (
-        f"請分析以下句子，提取其中的區域和路段名稱，按照指定格式輸出。\n\n"
-        f"- **提取規則**：\n"
-        f"  - 區域：句子中明確提及的行政區域名稱，如「台北市」、「三峽區」。若未提及，填寫 None。\n"
-        f"  - 路段：句子中提及的道路名稱，如「中正路」、「學府路」。若未提及，填寫 None。\n"
-        f"  - 注意：不要將路段名稱填入區域，區域和路段不可相同。\n\n"
-        f"- **範例1**:\n"
-        f"  「我想知道三峽區學府路的路況」\n"
-        f"  輸出:\n"
-        f"  區域: 三峽區\n"
-        f"  路段: 學府路\n\n"
-        f"請處理以下句子：\n"
-        f"「{input_text}」"
-    )
+    f"請分析以下句子，提取其中的區域和路段名稱，按照指定格式輸出。\n\n"
+    f"- **提取規則**：\n"
+    f"  - 區域：句子中明確提及的行政區域名稱，如「台北市」、「三峽區」。若未提及，填寫 None。\n"
+    f"  - 路段：句子中提及的道路名稱，如「中正路」、「學府路」。若未提及，填寫 None。\n"
+    f"  - 注意：不要將路段名稱填入區域，區域和路段不可相同。\n\n"
+    f"- **範例1**:\n"
+    f"  「我想知道三峽區學府路的路況」\n"
+    f"  輸出:\n"
+    f"  區域: 三峽區\n"
+    f"  路段: 學府路\n\n"
+    f"- **範例2**:\n"
+    f"  「中正路有塞車嗎」\n"
+    f"  輸出:\n"
+    f"  區域: None\n"
+    f"  路段: 中正路\n\n"
+    f"- **範例3**:\n"
+    f"  「查詢和平路的交通狀況」\n"
+    f"  輸出:\n"
+    f"  區域: None\n"
+    f"  路段: 和平路\n\n"
+    f"請處理以下句子：\n"
+    f"「{input_text}」"
+)
 
     try:
-        # 调用 Ollama API
-        response: ChatResponse = chat(model="llama3.2", messages=[
+        response = chat(model="llama3.2", messages=[
             {"role": "user", "content": llama_prompt}
         ])
-        return response.message.content.strip()  # 返回清理过的结果
+        if isinstance(response, dict) and 'message' in response:
+            return response['message']['content'].strip()
+        else:
+            print(f"Error: 無法解析 Ollama 回應: {response}")
+            return "無法獲取 Ollama 的回應，請檢查配置。"
     except Exception as e:
-        print(f"Error: {e}")
+        print(f"Error in get_llama_response: {e}")
         return "無法獲取 Ollama 的回應，請檢查配置。"
 
 # 解析 Llama 輸出以提取區域和路段
@@ -75,8 +88,11 @@ def parse_area_and_road(llama_output):
 
 # 格式化日期
 def format_datetime(dt_str):
-    dt = datetime.fromisoformat(dt_str[:-6])
-    return dt.strftime('%Y-%m-%d %H:%M')
+    try:
+        dt = datetime.fromisoformat(dt_str[:-6])
+        return dt.strftime('%Y-%m-%d %H:%M')
+    except ValueError:
+        return "未知時間"
 
 # 查詢交通資訊（本地 JSON 檔案或 API）
 def get_traffic_info(area, road):
@@ -140,7 +156,6 @@ def handle_message(event):
     else:
         line_bot_api.reply_message(event.reply_token, TextSendMessage(text="未能識別區域或路段，請輸入更清晰的地區或道路名稱，例如：台北市中正區信義路。"))
 
-
 if __name__ == "__main__":
-    port = int(os.getenv("PORT", 5000))  
+    port = int(os.getenv("PORT", 5000))
     app.run(host="0.0.0.0", port=port)
