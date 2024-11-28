@@ -5,7 +5,7 @@ from linebot import LineBotApi, WebhookHandler
 from linebot.exceptions import InvalidSignatureError
 from linebot.models import MessageEvent, TextMessage, TextSendMessage
 import json
-
+import os
 # TDX API credentials
 TOKEN_URL = "https://tdx.transportdata.tw/auth/realms/TDXConnect/protocol/openid-connect/token"
 CLIENT_ID = "bob223590-ba7b60b8-d55c-4d51"
@@ -176,4 +176,5 @@ def handle_message(event):
         line_bot_api.reply_message(event.reply_token, TextSendMessage(text="未能識別區域或路段，請輸入更清晰的地區或道路名稱，例如：台北市中正區信義路。"))
 
 if __name__ == "__main__":
-    app.run(port=5000)
+    port = int(os.getenv("PORT", 5000))  
+    app.run(host="0.0.0.0", port=port)
