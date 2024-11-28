@@ -170,7 +170,6 @@ traitlets==5.14.3
 transformers==4.46.1
 trio==0.26.2
 trio-websocket==0.11.1
-triton @ file:///C:/Users/%E7%9B%A7bob/Desktop/AI%20Agent/triton-3.0.0-cp312-cp312-win_amd64.whl#sha256=5ae084d099e1d625ee5952255b1275933c96fafe90c9cb76051d98409f4b2e81
 trl==0.12.0
 typer==0.13.1
 typing-inspect==0.9.0
