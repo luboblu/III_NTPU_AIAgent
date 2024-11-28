@@ -32,6 +32,7 @@ def load_local_traffic_data():
 
 # 使用 Ollama API 取得 Llama 模型的回應
 def get_llama_response(input_text):
+    api_url = os.getenv("OLLAMA_API_URL", "http://120.126.146.9:11434")
     llama_prompt = (
     f"請分析以下句子，提取其中的區域和路段名稱，按照指定格式輸出。\n\n"
     f"- **提取規則**：\n"
@@ -58,19 +59,21 @@ def get_llama_response(input_text):
 )
 
     try:
-        response = chat(
-            model="llama3.2",
-            messages=[{"role": "user", "content": llama_prompt}],
-            api_url = os.getenv("OLLAMA_API_URL", "http://120.126.146.9:11434")
-        )
-        if isinstance(response, dict) and 'message' in response:
-            return response['message']['content'].strip()
-        else:
-            print(f"Error: 無法解析 Ollama 回應: {response}")
-            return "無法獲取 Ollama 的回應，請檢查配置。"
-    except Exception as e:
-        print(f"Error in get_llama_response: {e}")
-        return "無法獲取 Ollama 的回應，請檢查配置。"
+        payload = {
+            "model": "llama3.2",
+            "messages": [{"role": "user", "content": llama_prompt}]
+        }
+        headers = {"Content-Type": "application/json"}
+
+        response = requests.post(f"{api_url}/api/chat", json=payload, headers=headers)
+        response.raise_for_status() 
+
+        # 解析 API 的 JSON 響應
+        result = response.json()
+        return result.get("message", {}).get("content", "Ollama 回應無法解析。").strip()
+    except requests.RequestException as e:
+        print(f"Error calling Ollama API: {e}")
+        return "無法連接到 Ollama API，請檢查服務。"
 
 # 解析 Llama 輸出以提取區域和路段
 def parse_area_and_road(llama_output):
