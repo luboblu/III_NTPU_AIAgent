@@ -56,18 +56,26 @@
      ```
 
 4. **配置環境變數**
-   - 如果需要 交通部TDX 密鑰，請在環境中配置：
-     ```bash
-     export TOKEN_URL = "https://tdx.transportdata.tw/auth/realms/TDXConnect/protocol/openid-connect/token"
-     export CLIENT_ID = "bob223590-ba7b60b8-d55c-4d51"
-     export CLIENT_SECRET = "8c2f1ad1-9d79-4d5a-a8d6-a140a7331030"
-     export API_URL = "https://tdx.transportdata.tw/api/basic/v2/Road/Traffic/Live/News/City/NewTaipei?%24top=1000&%24format=JSON"
-     ```
-   - 如果需要 Line API 密鑰，請在環境中配置：
-     ```bash
-     export LINE_CHANNEL_SECRET=1ff8185e27c640b535e2a214dbd1488f
-     export LINE_CHANNEL_ACCESS_TOKEN=KN80EFH9I1mPuRF+6iEvjw9ncCckrMzdADu6AipHmT2eZJkCov+Qjt8JvSc2HeNEmOfg/UZthe2zsxihgT6FcdB5HI3ruEG7stOqqatnp58k79wPhTlqoA41LDe5yAoYQAiDoMzD5XiR/Vgh5uI10gdB04t89/1O/w1cDnyilFU=
-     ```
+
+- **如果需要 交通部 TDX 密鑰，請在環境中配置：**
+    ```bash
+    export TOKEN_URL="[https://tdx.transportdata.tw/auth/realms/TDXConnect/protocol/openid-connect/token](https://tdx.transportdata.tw/auth/realms/TDXConnect/protocol/openid-connect/token)"
+    export CLIENT_ID="bob223590-ba7b60b8-d55c-4d51"
+    export CLIENT_SECRET="********-****-****-****-************"
+    export API_URL="[https://tdx.transportdata.tw/api/basic/v2/Road/Traffic/Live/News/City/NewTaipei?%24top=1000&%24format=JSON](https://tdx.transportdata.tw/api/basic/v2/Road/Traffic/Live/News/City/NewTaipei?%24top=1000&%24format=JSON)"
+    ```
+
+- **如果需要 Line API 密鑰，請在環境中配置：**
+    ```bash
+    export LINE_CHANNEL_SECRET=********************************
+    export LINE_CHANNEL_ACCESS_TOKEN=********************************************************************************************************************************************
+    ```
+
+---
+
+> [!CAUTION]
+> **安全提醒：**
+> 這些 Secret 與 Access Token 屬於敏感資訊，**請勿將其直接寫入程式碼或上傳至公開的 GitHub 儲存庫**。建議使用 `.env` 檔案管理，並確保該檔案已加入 `.gitignore`。
 
 5. **啟動本地服務**
    - 執行主程式：
